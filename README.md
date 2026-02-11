@@ -23,6 +23,8 @@ A secure, mobile-optimized web application for logging equipment issues with dep
 
 ---
 
+<img src='https://github.com/fabiomatricardi/cm-log-system/raw/main/NGUYA_MAintenance002.jpg' width=900>
+
 ## 🏗️ System Architecture
 ```mermaid
 graph LR
