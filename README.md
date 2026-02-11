@@ -8,6 +8,7 @@
 
 A secure, mobile-optimized web application for logging equipment issues with departmental routing (INST/ICSS), email notifications, and Excel exports. Built with Gradio for zero-install deployment on local networks.
 
+<img src='https://github.com/fabiomatricardi/cm-log-system/raw/main/NGUYA_MAintenance001.jpg' width=900>
 ---
 
 ## 🌟 Key Features
@@ -23,7 +24,7 @@ A secure, mobile-optimized web application for logging equipment issues with dep
 
 ---
 
-<img src='https://github.com/fabiomatricardi/cm-log-system/raw/main/NGUYA_MAintenance002.jpg' width=900>
+
 
 ## 🏗️ System Architecture
 ```mermaid
@@ -122,6 +123,9 @@ python maintenance.py
 - [ ] **CRITICAL**: Change default admin credentials before deployment
 
 ---
+
+<img src='https://github.com/fabiomatricardi/cm-log-system/raw/main/NGUYA_MAintenance002.jpg' width=900>
+
 
 ## 📱 Interface Guide
 ### Main Submission Workflow (`CM_send.py`)
