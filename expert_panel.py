@@ -14,8 +14,19 @@ ICSS_EMAILS_FILE = "CM-ICSS-emails.txt"  # ICSS recipients
 DB_FILE = "cmlogs-db.json"
 EXPORT_DIR = "exports"
 os.makedirs(EXPORT_DIR, exist_ok=True)
-MYLOCALIP = socket.gethostbyname(socket.gethostname()) if not socket.gethostname().startswith("localhost") else "127.0.0.1"
 
+# Improved IP detection (avoids 127.0.0.1 trap)
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return "127.0.0.1"
+
+MYLOCALIP = get_local_ip()
 
 # Reuse your existing CSS for perfect visual consistency
 CUSTOM_CSS = """
@@ -26,6 +37,9 @@ CUSTOM_CSS = """
 .section-box { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 15px 0; background: #f8fafc; }
 .save-btn { background: linear-gradient(to right, #1e40af, #1d4ed8) !important; color: white !important; }
 .export-btn { background: linear-gradient(to right, #b45309, #92400e) !important; color: white !important; }
+.status-sent { background-color: #fff3e0 !important; }
+.status-ongoing { background-color: #fff9c4 !important; }
+.status-completed { background-color: #e8f5e9 !important; }
 """
 
 # ======================
@@ -45,9 +59,8 @@ def save_email_file(filename, content):
     """Save edited content to email file with validation"""
     try:
         # Basic validation: check for at least one valid email
-        valid_emails = [line.strip() for line in content.split('\n') 
-                       if line.strip() and not line.startswith('#') and '@' in line]
-        
+        valid_emails = [line.strip() for line in content.split('\n')
+                        if line.strip() and not line.startswith('#') and '@' in line]
         if not valid_emails:
             return f"⚠️ Warning: No valid emails found in {filename}. File saved but emails may not receive notifications."
         
@@ -58,7 +71,7 @@ def save_email_file(filename, content):
         return f"❌ Save failed for {filename}: {str(e)}"
 
 def export_db_to_excel():
-    """Export cmlogs-db.json to timestamped Excel file"""
+    """Export cmlogs-db.json to timestamped Excel file with ALL columns"""
     try:
         if not os.path.exists(DB_FILE):
             return "❌ Database file not found. Run main CM app first to create logs.", None
@@ -69,47 +82,74 @@ def export_db_to_excel():
         if not data:
             return "⚠️ Database is empty. No logs to export.", None
         
-        # Process data for Excel
-        df = pd.DataFrame(data)
+        # Process data for Excel - handle ALL fields including new ones
+        processed_data = []
+        for entry in data:
+            # Format ID with leading zeros (CM-XXXXX)
+            formatted_id = f"CM-{entry.get('ID_db', 0):05d}"
+            
+            # Handle list fields safely (join with commas)
+            orig_files = entry.get('original_filenames', [])
+            stored_files = entry.get('stored_filenames', [])
+            
+            processed_data.append({
+                'ID': formatted_id,
+                'TAGNAME': entry.get('TAGNAME', ''),
+                'DESCRIPTION': entry.get('DESCRIPTION', ''),
+                'reported_by': entry.get('reported_by', ''),
+                'timestamp': entry.get('timestamp', ''),
+                'status': entry.get('status', 'sent').capitalize(),  # New field with default
+                'attachment_count': entry.get('attachment_count', 0),
+                'original_filenames': ', '.join(orig_files) if isinstance(orig_files, list) else orig_files,
+                'stored_filenames': ', '.join(stored_files) if isinstance(stored_files, list) else stored_files,
+                'last_edited': entry.get('last_edited', ''),
+                'edited_by': entry.get('edited_by', '')
+            })
         
-        # Handle list columns (original_filenames)
-        if 'original_filenames' in df.columns:
-            df['original_filenames'] = df['original_filenames'].apply(
-                lambda x: ', '.join(x) if isinstance(x, list) else x
-            )
+        # Create DataFrame with explicit column ordering for readability
+        df = pd.DataFrame(processed_data)
         
-        # Format ID for display
-        if 'ID_db' in df.columns:
-            df['ID'] = df['ID_db'].apply(lambda x: f"CM-{x:05d}")
-            df.drop('ID_db', axis=1, inplace=True)
+        # Define optimal column order (workflow-focused)
+        column_order = [
+            'ID', 'TAGNAME', 'DESCRIPTION', 'reported_by', 'timestamp', 
+            'status', 'attachment_count', 'original_filenames', 
+            'stored_filenames', 'last_edited', 'edited_by'
+        ]
         
-        # Reorder columns for readability
-        cols = ['ID', 'TAGNAME', 'DESCRIPTION', 'reported_by', 'timestamp', 'attachment_count', 'original_filenames']
-        df = df[[c for c in cols if c in df.columns]]
+        # Only include columns that exist in the data
+        existing_cols = [col for col in column_order if col in df.columns]
+        df = df[existing_cols]
         
         # Generate filename with timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         excel_path = os.path.join(EXPORT_DIR, f"cmlogs_export_{timestamp}.xlsx")
         
-        # Export to Excel with formatting
+        # Export to Excel with professional formatting
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Maintenance Logs', index=False)
             worksheet = writer.sheets['Maintenance Logs']
-            # Auto-adjust column widths
-            for column in worksheet.columns:
+            
+            # Auto-adjust column widths with sensible limits
+            for idx, column in enumerate(worksheet.columns, 1):
                 max_length = 0
-                column_letter = column[0].column_letter
+                column_letter = worksheet.cell(row=1, column=idx).column_letter
+                
                 for cell in column:
                     try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
                     except:
                         pass
-                adjusted_width = (max_length + 2) * 1.1
-                worksheet.column_dimensions[column_letter].width = min(adjusted_width, 50)
+                
+                # Set width with padding, capped at 60 characters
+                adjusted_width = min((max_length + 2) * 1.1, 60)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
+            # Freeze header row for scrolling
+            worksheet.freeze_panes = 'A2'
         
         return f"✅ Exported {len(df)} log(s) to **{os.path.basename(excel_path)}**", excel_path
-    
+
     except ImportError:
         return "❌ Missing dependencies: Install with `pip install pandas openpyxl`", None
     except Exception as e:
@@ -133,7 +173,6 @@ def get_editor_visibility(is_authenticated):
         gr.update(value="")  # Clear password field
     )
 
-
 # ======================
 # GRADIO INTERFACE
 # ======================
@@ -146,6 +185,7 @@ with gr.Blocks(
     gr.Markdown("# 👨‍🔧 Expert Panel - Maintenance System Admin")
     gr.Markdown("Manage recipient lists and export maintenance logs. *Changes apply immediately to main CM app.*")
     gr.Markdown("---")
+    
     # ===== AUTHENTICATION PANEL (VISIBLE BY DEFAULT) =====
     with gr.Group(elem_classes=["section-box"], visible=True) as auth_panel:
         gr.Markdown("## 🔒 Email Management Authentication")
@@ -154,8 +194,9 @@ with gr.Blocks(
         auth_pass = gr.Textbox(label="Password", type="password", placeholder="admin")
         auth_btn = gr.Button("🔓 Unlock Email Editors", variant="primary")
         auth_status = gr.Markdown()
+    
     gr.Markdown("---")
-
+    
     # ===== INST EMAILS SECTION =====
     with gr.Group(elem_classes=["section-box"], visible=False) as inst_section:
         gr.Markdown("## 📧 INST Recipients (`CMemails.txt`)")
@@ -191,65 +232,74 @@ with gr.Blocks(
     # ===== EXPORT SECTION =====
     with gr.Group(elem_classes=["section-box"]):
         gr.Markdown("## 📤 Export Maintenance Logs to Excel")
-        gr.Markdown(f"Exports all entries from `{DB_FILE}` to formatted Excel file with auto-sized columns")
+        gr.Markdown(f"Exports **ALL fields** from `{DB_FILE}` including status workflow and audit trail to formatted Excel file")
         export_btn = gr.Button("📤 Export to Excel", variant="secondary", elem_classes=["export-btn"])
         with gr.Row():
             export_status = gr.Markdown()
             export_file = gr.File(label="Download Exported Excel", interactive=False, visible=False)
     
     gr.Markdown("""
-
-> 🔒 Security: All files remain on your local server<br>
-> 💡 Tip: Valid emails must contain '@' symbol. Comments start with #<br>
-> 📁 Exports saved to: `exports/cmlogs_export_YYYYMMDD_HHMMSS.xlsx`
-
-    """)
-
-    gr.Markdown("")
-
+🔒 Security: All files remain on your local server  
+💡 Tip: Valid emails must contain '@' symbol. Comments start with #  
+📁 Exports saved to: `exports/cmlogs_export_YYYYMMDD_HHMMSS.xlsx`  
+📊 Export includes: ID, Tagname, Description, Reporter, Timestamp, **Status**, Attachments, Original/Stored Filenames, Edit History
+""")
+    
+    gr.Markdown(" ")
+    
     # FOOTER
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Image("logo.png", height=40, container=False, buttons=[])
+            try:
+                gr.Image("logo.png", height=40, container=False, buttons=[])
+            except:
+                gr.Markdown("NGUYA FLNG", elem_classes=["footer-note"])
         with gr.Column(scale=2):
             gr.Markdown("**All rights reserved (C)**\n"
-                       "created by fabio.matricardi@key-solution.eu for NGUYA FLNG Project\n"
+                        "created by fabio.matricardi@key-solution.eu for NGUYA FLNG Project\n"
                        f"visit [Key Solution SRL](https://key-solution.eu) | Network IP: {MYLOCALIP}")
 
     # ===== EVENT HANDLERS =====
-
+    
     # ===== AUTHENTICATION HANDLER =====
+    def handle_auth(username, password):
+        success, msg = authenticate_user(username, password)
+        return (
+            gr.update(visible=success),
+            gr.update(visible=success),
+            gr.update(visible=not success),
+            gr.update(value=""),
+            msg
+        )
+    
     auth_btn.click(
-        fn=authenticate_user,
+        fn=handle_auth,
         inputs=[auth_user, auth_pass],
-        outputs=[gr.State(), auth_status]  # Temporary state holder
-    ).success(
-        fn=get_editor_visibility,
-        inputs=gr.State(True),
-        outputs=[inst_section, icss_section, auth_panel, auth_pass]
-    ).failure(
-        fn=lambda: (gr.update(), gr.update(), gr.update(), gr.update(value="")),
-        outputs=[inst_section, icss_section, auth_panel, auth_pass]
+        outputs=[inst_section, icss_section, auth_panel, auth_pass, auth_status]
     )
-
-
-    # ===== EMAIL SAVE HANDLERS (UNCHANGED) =====
+    
+    # ===== EMAIL SAVE HANDLERS =====
+    def save_inst_emails(content):
+        result = save_email_file(CM_EMAILS_FILE, content)
+        return result, load_email_file(CM_EMAILS_FILE)
+    
     inst_save_btn.click(
-        fn=save_email_file,
-        inputs=[gr.State(CM_EMAILS_FILE), inst_editor],
-        outputs=inst_status
-    ).then(
-    fn=lambda: load_email_file(CM_EMAILS_FILE), 
-    outputs=inst_editor)
+        fn=save_inst_emails,
+        inputs=[inst_editor],
+        outputs=[inst_status, inst_editor]
+    )
+    
+    def save_icss_emails(content):
+        result = save_email_file(ICSS_EMAILS_FILE, content)
+        return result, load_email_file(ICSS_EMAILS_FILE)
     
     icss_save_btn.click(
-        fn=save_email_file,
-        inputs=[gr.State(ICSS_EMAILS_FILE), icss_editor],
-        outputs=icss_status
-    ).then(
-    fn=lambda: load_email_file(CM_EMAILS_FILE), 
-    outputs=icss_editor)
+        fn=save_icss_emails,
+        inputs=[icss_editor],
+        outputs=[icss_status, icss_editor]
+    )
     
+    # ===== EXPORT HANDLER =====
     export_btn.click(
         fn=export_db_to_excel,
         inputs=None,
@@ -278,6 +328,11 @@ if __name__ == "__main__":
     print("\n⚠️ REQUIREMENTS:")
     print("   • pandas and openpyxl must be installed (`pip install pandas openpyxl`)")
     print("   • Main CM app must be running first to generate cmlogs-db.json")
+    print("\n✨ EXPORT FEATURES:")
+    print("   • All 11 fields exported including new 'status' workflow field")
+    print("   • Backward compatible with legacy logs (missing fields handled gracefully)")
+    print("   • Auto-sized columns with frozen header row")
+    print("   • Professional formatting for audit/compliance reporting")
     print("= "*70 + "\n")
     
-    demo.launch()
+    demo.launch(server_port=7960,css=CUSTOM_CSS)

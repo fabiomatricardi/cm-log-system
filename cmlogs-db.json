@@ -1,0 +1,104 @@
+[
+  {
+    "ID_db": 1,
+    "TAGNAME": "77BFFZS02-901",
+    "DESCRIPTION": "the Flame detector is in fault. located in S02",
+    "reported_by": "Fabio Matricardi",
+    "timestamp": "2026-02-10 15:45:05",
+    "attachment_count": 1,
+    "original_filenames": [
+      "book Zhou.png"
+    ],
+    "status": "completed",
+    "last_edited": "2026-02-12 12:28:23",
+    "edited_by": "Fabio Matricardi"
+  },
+  {
+    "ID_db": 3,
+    "TAGNAME": "75OWS0100",
+    "DESCRIPTION": "the screen is black",
+    "reported_by": "Fabio MAtricardi",
+    "timestamp": "2026-02-10 17:27:33",
+    "attachment_count": 1,
+    "original_filenames": [
+      "004_2.png"
+    ],
+    "status": "ongoing",
+    "last_edited": "2026-02-12 12:59:49",
+    "edited_by": "Fabio MAtricardi"
+  },
+  {
+    "ID_db": 5,
+    "TAGNAME": "77PA-003A",
+    "DESCRIPTION": "gives fault feedback",
+    "reported_by": "Paolino Paperino",
+    "timestamp": "2026-02-10 18:36:47",
+    "attachment_count": 1,
+    "original_filenames": [
+      "congoFLNG.png"
+    ]
+  },
+  {
+    "ID_db": 6,
+    "TAGNAME": "77PA-003B",
+    "DESCRIPTION": "gives fault feedback",
+    "reported_by": "Paolino Paperino",
+    "timestamp": "2026-02-10 18:37:12",
+    "attachment_count": 1,
+    "original_filenames": [
+      "congoFLNG.png"
+    ]
+  },
+  {
+    "ID_db": 7,
+    "TAGNAME": "26FV-0301",
+    "DESCRIPTION": "ICSS: the valve on the HMI is wrongly set up. fix the graphic",
+    "reported_by": "Fabio",
+    "timestamp": "2026-02-10 19:56:53",
+    "attachment_count": 1,
+    "original_filenames": [
+      "309400DPFQ00191_EXDE00_01_Overall PFD_autocad By 111.pdf"
+    ]
+  },
+  {
+    "ID_db": 8,
+    "TAGNAME": "36TSHH-0333",
+    "DESCRIPTION": "INST The instrument is faulty",
+    "reported_by": "Mudarras",
+    "timestamp": "2026-02-10 20:43:03",
+    "attachment_count": 1,
+    "original_filenames": [
+      "PROCESS DESCRIPTION 3094TTDPRV00002_EXDE03_23.pdf"
+    ]
+  },
+  {
+    "ID_db": 10,
+    "TAGNAME": "26PV-0119A",
+    "DESCRIPTION": "implement MoC on 26PV-0119A/B",
+    "reported_by": "fabio",
+    "timestamp": "2026-02-12 10:32:20",
+    "attachment_count": 1,
+    "original_filenames": [
+      "MOC_1.pdf"
+    ],
+    "stored_filenames": [
+      "de361098403841c0898c78b5a0a6d7b5_MOC_1.pdf"
+    ],
+    "status": "completed",
+    "last_edited": "2026-02-12 12:31:16",
+    "edited_by": "fabio"
+  },
+  {
+    "ID_db": 11,
+    "TAGNAME": "78FP-009",
+    "DESCRIPTION": "not existing",
+    "reported_by": "daniel",
+    "timestamp": "2026-02-12 12:30:23",
+    "attachment_count": 0,
+    "original_filenames": [],
+    "stored_filenames": [],
+    "status": "sent",
+    "last_edited": null,
+    "edited_by": null
+  }
+]

@@ -180,4 +180,4 @@ if __name__ == "__main__":
     print("="*70 + "\n")
     
     # Launch with network-friendly settings
-    demo.launch()
+    demo.launch(css=CUSTOM_CSS)
